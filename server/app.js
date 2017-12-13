@@ -97,9 +97,9 @@ function saveBlob(binaryData){
   });
 }
 
-var firstBlob;
+var lastTwentySeconds;
 
-var index = 1;
+var totalBlob;
 
 wsServer.on('request', function(request) {
   var connection = request.accept('echo-protocol', request.origin);
@@ -109,14 +109,14 @@ wsServer.on('request', function(request) {
   wsClients.push(connection);
 
 
-  // send user beginning of stream if there's already a first blob
-  if(firstBlob){
+  // send user beginning of stream if there's already a last twenty seconds
+  if(lastTwentySeconds){
 
     console.log('sending first blob');
 
     wsClients.map(function(client, index){
 
-      client.sendBytes(firstBlob);
+      client.sendBytes(lastTwentySeconds);
     });
 
 
@@ -125,12 +125,11 @@ wsServer.on('request', function(request) {
   /** RECEIVE DATA FROM BROWSER **/
   connection.on('message', function(message) {
 
-    // save first blob if it doesnt exist already
-    if(!firstBlob){
-      firstBlob = message.binaryData;
-    }
+    // receive data from broadcaster and push to viewer (possible bug here, dont push to livestreamer)
+    wsClients.map(function(client, index){
 
-    console.log(message);
+      client.sendBytes(message.binaryData);
+    });
 
 
   });
