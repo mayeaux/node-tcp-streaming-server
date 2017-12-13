@@ -7,12 +7,17 @@ var codecString = '';
  */
 
 // codecString = 'video/mp4; codecs="avc1.42C028"';
-codecString = 'video/webm; codecs="vp8"';
+// codecString = 'video/webm; codecs="vp8"';
 // codecString = 'video/webm; codecs="vp9"';
+// codecString = 'video/mp4; codecs="avc1.42C028, mp4a.40.2"';
+
+codecString = 'video/webm; codecs="opus,vp8"';
 
 
 
-var video = document.getElementById('video');
+
+
+  var video = document.getElementById('video');
 var mediaSource = new MediaSource();
 video.src = window.URL.createObjectURL(mediaSource);
 var buffer = null;
@@ -49,7 +54,11 @@ function sourceBufferHandle(){
 mediaSource.addEventListener('sourceopen', sourceBufferHandle)
 
 function initWS(){
-    var ws = new WebSocket('ws://' + window.location.hostname + ':' + window.location.port, 'echo-protocol');
+    var webSocketString = 'ws://' + window.location.hostname + ':' + window.location.port;
+
+    console.log(webSocketString)
+
+    var ws = new WebSocket(webSocketString, 'echo-protocol');
     ws.binaryType = "arraybuffer";
 
     ws.onopen = function(){
@@ -61,8 +70,20 @@ function initWS(){
 
         if(typeof event.data === 'object'){
             if (buffer.updating || queue.length > 0) {
+
+                console.log('adding to queue');
+
+                console.log(event.data);
+
                 queue.push(event.data);
             } else {
+
+                console.log(event.data);
+
+                console.log('appending right now')
+
+              console.log(event.data);
+
                 buffer.appendBuffer(event.data);
                 video.play();
             }
