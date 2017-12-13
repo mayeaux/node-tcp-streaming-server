@@ -84,38 +84,56 @@ function toArrayBuffer(buf) {
   return ab;
 }
 
+function saveBlob(binaryData){
+  fs.writeFile(`${index}.webm`, binaryData, function(err) {
+
+    index++
+
+    if(err) {
+      return console.log(err);
+    }
+
+    console.log("The file was saved!");
+  });
+}
+
 var firstBlob;
+
+var index = 1;
 
 wsServer.on('request', function(request) {
   var connection = request.accept('echo-protocol', request.origin);
   console.log((new Date()) + ' Connection accepted.');
 
-  if(firstPacket.length){
-    /**
-     * Every user will get beginnig of stream 
-    **/ 
-    firstPacket.map(function(packet, index){
-      connection.sendBytes(packet); 
-    });
-    
-  }
-
-  // send user beginning of stream
-  if(firstBlob){
-
-    firstPacket.map(function(packet, index){
-      connection.sendBytes(firstBlob);
-    });
-  }
-
-
-    
-  /**
-   * Add this user to collection
-   */
+  // add client to ws users collection
   wsClients.push(connection);
 
 
+  // send user beginning of stream if there's already a first blob
+  if(firstBlob){
+
+    console.log('sending first blob');
+
+    wsClients.map(function(client, index){
+
+      client.sendBytes(firstBlob);
+    });
+
+
+  }
+
+  /** RECEIVE DATA FROM BROWSER **/
+  connection.on('message', function(message) {
+
+    // save first blob if it doesnt exist already
+    if(!firstBlob){
+      firstBlob = message.binaryData;
+    }
+
+    console.log(message);
+
+
+  });
 
   connection.on('close', function(reasonCode, description) {
     console.log(reasonCode);
@@ -123,22 +141,6 @@ wsServer.on('request', function(request) {
     console.log(description);
 
     console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
-  });
-
-  /** RECEIVE DATA FROM BROWSER **/
-  connection.on('message', function(message) {
-
-    if(!firstBlob) firstBlob = message;
-
-    wsClients.map(function(client, index){
-
-      client.sendBytes(message.binaryData);
-    });
-
-    console.log(message);
-
-
-
   });
 });
 
