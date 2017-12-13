@@ -6,6 +6,8 @@ var app = express();
 var WebSocketServer = require('websocket').server;
 var fs = require('fs');
 var probe = require('node-ffprobe');
+const exec = require('child_process').exec;
+const concat = require('concat');
 
 function isAbv(value) {
   return value && value.buffer instanceof ArrayBuffer && value.byteLength !== undefined;
@@ -84,6 +86,16 @@ function toArrayBuffer(buf) {
   return ab;
 }
 
+// async function concatFiles(latestBuffer){
+//   await saveFile('./latestFile')
+//   await
+// }
+
+function createLastTwentySeconds(){
+
+}
+
+
 function saveBlob(binaryData){
   fs.writeFile(`${index}.webm`, binaryData, function(err) {
 
@@ -99,7 +111,8 @@ function saveBlob(binaryData){
 
 var lastTwentySeconds;
 
-var totalBlob;
+var totalBuffer;
+var index = 0;
 
 wsServer.on('request', function(request) {
   var connection = request.accept('echo-protocol', request.origin);
@@ -107,6 +120,20 @@ wsServer.on('request', function(request) {
 
   // add client to ws users collection
   wsClients.push(connection);
+
+  fs.readFile('./output10.webm', function (err,data) {
+    if (err) {
+      return console.log(err);
+    }
+
+    console.log('file read')
+
+    wsClients.map(function(client, index){
+
+      client.sendBytes(data);
+    });
+
+  });
 
 
   // send user beginning of stream if there's already a last twenty seconds
@@ -125,11 +152,31 @@ wsServer.on('request', function(request) {
   /** RECEIVE DATA FROM BROWSER **/
   connection.on('message', function(message) {
 
-    // receive data from broadcaster and push to viewer (possible bug here, dont push to livestreamer)
-    wsClients.map(function(client, index){
+    if(!totalBuffer){
+      totalBuffer = message.binaryData;
+    } else {
+      totalBuffer = Buffer.concat([totalBuffer, message.binaryData]);
+    }
 
-      client.sendBytes(message.binaryData);
-    });
+    index++;
+
+    console.log('index ' + index)
+
+    if(index == 5){
+
+      console.log('sending total buffer');
+      // receive data from broadcaster and push to viewer (possible bug here, dont push to livestreamer)
+      wsClients.map(function(client, index){
+
+        client.sendBytes(totalBuffer);
+      });
+    }
+
+    // // receive data from broadcaster and push to viewer (possible bug here, dont push to livestreamer)
+    // wsClients.map(function(client, index){
+    //
+    //   client.sendBytes(message.binaryData);
+    // });
 
 
   });
