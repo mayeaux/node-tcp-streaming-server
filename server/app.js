@@ -4,6 +4,12 @@ var path = require('path');
 var express = require('express');
 var app = express();
 var WebSocketServer = require('websocket').server;
+var fs = require('fs');
+var probe = require('node-ffprobe');
+
+function isAbv(value) {
+  return value && value.buffer instanceof ArrayBuffer && value.byteLength !== undefined;
+}
 
 var firstPacket = [];
 
@@ -34,14 +40,17 @@ server.listen(options.httpPort);
 var tcpServer = net.createServer(function(socket) {
     socket.on('data', function(data){
 
+      // console.log(data);
+
       /**
        * We are saving first packets of stream. These packets will be send to every new user.
-       * This is hack. Video won't start whitout them.  
+       * This is hack. Video won't start without them.
        */
       if(firstPacket.length < 3){ 
         console.log('Init first packet', firstPacket.length);
         firstPacket.push(data); 
       }
+
 
       /**
        * Send stream to all clients
@@ -49,17 +58,33 @@ var tcpServer = net.createServer(function(socket) {
       wsClients.map(function(client, index){
         client.sendBytes(data);
       });
+
+
     });
 });
 
 tcpServer.listen(options.tcpPort, 'localhost');
 
-
 /** Websocet */
 var wsServer = new WebSocketServer({
     httpServer: server,
-    autoAcceptConnections: false
+    autoAcceptConnections: false,
+    maxReceivedFrameSize : 9999999999,
+    maxReceivedMessageSize: 99999999
 });
+
+
+
+function toArrayBuffer(buf) {
+  var ab = new ArrayBuffer(buf.length);
+  var view = new Uint8Array(ab);
+  for (var i = 0; i < buf.length; ++i) {
+    view[i] = buf[i];
+  }
+  return ab;
+}
+
+var firstBlob;
 
 wsServer.on('request', function(request) {
   var connection = request.accept('echo-protocol', request.origin);
@@ -74,13 +99,47 @@ wsServer.on('request', function(request) {
     });
     
   }
+
+  // send user beginning of stream
+  if(firstBlob){
+
+    firstPacket.map(function(packet, index){
+      connection.sendBytes(firstBlob);
+    });
+  }
+
+
     
   /**
    * Add this user to collection
    */
   wsClients.push(connection);
 
+
+
   connection.on('close', function(reasonCode, description) {
-      console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+    console.log(reasonCode);
+
+    console.log(description);
+
+    console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+  });
+
+  /** RECEIVE DATA FROM BROWSER **/
+  connection.on('message', function(message) {
+
+    if(!firstBlob) firstBlob = message;
+
+    wsClients.map(function(client, index){
+
+      client.sendBytes(message.binaryData);
+    });
+
+    console.log(message);
+
+
+
   });
 });
+
+console.log('listening on port 8080');
