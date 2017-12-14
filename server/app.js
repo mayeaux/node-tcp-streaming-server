@@ -8,7 +8,7 @@ var fs = require('fs-extra');
 var probe = require('node-ffprobe');
 const exec = require('child_process').exec;
 const concat = require('concat');
-const randomString = require('randomstring');
+const randomstring = require('randomstring');
 
 const Promise = require('bluebird');
 
@@ -46,46 +46,55 @@ var wsServer = new WebSocketServer({
     maxReceivedMessageSize: 99999999
 });
 
+let index = 1;
 
-wsServer.on('request', function(request) {
-  var connection = request.accept('echo-protocol', request.origin);
-  console.log((new Date()) + ' Connection accepted.');
+(async function() {
 
-  // add client to ws users collection
-  wsClients.push(connection);
+  const randomString = await randomstring.generate(7);
+
+  wsServer.on('request', function (request) {
+    var connection = request.accept('echo-protocol', request.origin);
+    console.log((new Date()) + ' Connection accepted.');
+
+    // add client to ws users collection
+    wsClients.push(connection);
 
 
+    // send user beginning of stream if there's already a last twenty seconds
+    if (false) {
+
+      console.log('sending first blob');
+
+      wsClients.map(function (client, index) {
+
+        client.sendBytes(lastTwentySeconds);
+      });
 
 
-  // send user beginning of stream if there's already a last twenty seconds
-  if(false){
+    }
 
-    console.log('sending first blob');
+    /** RECEIVE DATA FROM BROWSER **/
+    connection.on('message', async function (message) {
 
-    wsClients.map(function(client, index){
+      console.log(`writing file: ${randomString}/${index}`);
 
-      client.sendBytes(lastTwentySeconds);
+      await fs.ensureDir(`./${randomString}`);
+
+      await fs.writeFile(`./${randomString}/${index}.webm`, message.binaryData);
+
+      index++
+
     });
 
+    connection.on('close', function (reasonCode, description) {
+      console.log(reasonCode);
 
-  }
+      console.log(description);
 
-  /** RECEIVE DATA FROM BROWSER **/
-  connection.on('message', async function(message) {
-
-    console.log('writing file');
-
-    await fs.writeFile('./test.webm', message.binaryData);
-
+      console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+    });
   });
 
-  connection.on('close', function(reasonCode, description) {
-    console.log(reasonCode);
+  console.log('listening on port 8080');
 
-    console.log(description);
-
-    console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
-  });
-});
-
-console.log('listening on port 8080');
+})();
