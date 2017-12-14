@@ -55,30 +55,52 @@ async function createNewLatestFile(randomString, index){
 }
 
 (async function() {
+  //
   let index = 1;
-
   const randomString = await randomstring.generate(7);
+  //
+  // const randomString = 'X6GVWfC';
+  // let index = 3;
+
 
   wsServer.on('request', async function (request) {
     var connection = request.accept('echo-protocol', request.origin);
     console.log((new Date()) + ' Connection accepted.');
+
+    // console.log(connection);
 
     // add client to ws users collection
     wsClients.push(connection);
 
 
     // send user beginning of stream if there's already a last twenty seconds
-    if (index > 1) {
+    if (index > 2) {
 
       console.log('sending first latestFile');
 
-      wsClients.map(async function (client, index) {
+      // const fileName = `./oldVideos/newTest.webm`;
 
-        const file = await fs.readFile(`./${randomString}/latestFile.webm`)
+      const fileName = `./${randomString}/latestFile.webm`;
 
-        client.sendBytes(file);
-      });
 
+      fs.readFile(fileName, function(err, response){
+        connection.sendBytes(response);
+
+      })
+
+      // const file = await fs.readFile(`./${randomString}/latestFile.webm`)
+      //
+      // connection.sendBytes(file);
+
+    } else if (index == 2){
+
+      const fileName = `./${randomString}/1.webm`;
+
+
+      fs.readFile(fileName, function(err, response){
+        connection.sendBytes(response);
+
+      })
 
     }
 
@@ -90,6 +112,13 @@ async function createNewLatestFile(randomString, index){
       await fs.ensureDir(`./${randomString}`);
 
       await fs.writeFile(`./${randomString}/${index}.webm`, message.binaryData);
+
+      console.log('written file first way')
+
+      fs.writeFile(`./${randomString}/${index}-other.webm`, message.binaryData, function(err, response){
+        console.log('written file second way');
+      })
+
 
       if(index > 1){
         await createNewLatestFile(randomString, index);
