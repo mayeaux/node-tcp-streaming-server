@@ -7,10 +7,11 @@ var WebSocketServer = require('websocket').server;
 var fs = require('fs-extra');
 var probe = require('node-ffprobe');
 const exec = require('child_process').exec;
-const concat = require('concat');
 const randomstring = require('randomstring');
 
 const Promise = require('bluebird');
+
+const concat = Promise.promisifyAll(require('concat-files'));
 
 var options = {
     root: path.resolve(__dirname, '../client/'),
@@ -46,9 +47,15 @@ var wsServer = new WebSocketServer({
     maxReceivedMessageSize: 99999999
 });
 
-let index = 1;
+
+async function createNewLatestFile(randomString, index){
+  const newFile = await concat([`./${randomString}/1.webm`, `./${randomString}/${index}.webm`], `${randomString}/latestFile.webm`);
+
+  console.log('done concat');
+}
 
 (async function() {
+  let index = 1;
 
   const randomString = await randomstring.generate(7);
 
@@ -81,6 +88,10 @@ let index = 1;
       await fs.ensureDir(`./${randomString}`);
 
       await fs.writeFile(`./${randomString}/${index}.webm`, message.binaryData);
+
+      if(index > 1){
+        await createNewLatestFile(randomString, index);
+      }
 
       index++
 
