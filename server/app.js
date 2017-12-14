@@ -4,24 +4,21 @@ var path = require('path');
 var express = require('express');
 var app = express();
 var WebSocketServer = require('websocket').server;
-var fs = require('fs');
+var fs = require('fs-extra');
 var probe = require('node-ffprobe');
 const exec = require('child_process').exec;
 const concat = require('concat');
+const randomString = require('randomstring');
 
 const Promise = require('bluebird');
-
-function isAbv(value) {
-  return value && value.buffer instanceof ArrayBuffer && value.byteLength !== undefined;
-}
-
-var firstPacket = [];
 
 var options = {
     root: path.resolve(__dirname, '../client/'),
     httpPort: 8080,
     tcpPort: 9090
 };
+
+process.on('unhandledRejection', console.log);
 
 // Send static files with express
 app.use(express.static(options.root)); 
@@ -40,34 +37,6 @@ app.get('/', function(req, res){
 var server = http.createServer(app);
 server.listen(options.httpPort);
 
-/** TCP server */
-var tcpServer = net.createServer(function(socket) {
-    socket.on('data', function(data){
-
-      // console.log(data);
-
-      /**
-       * We are saving first packets of stream. These packets will be send to every new user.
-       * This is hack. Video won't start without them.
-       */
-      if(firstPacket.length < 3){ 
-        console.log('Init first packet', firstPacket.length);
-        firstPacket.push(data); 
-      }
-
-
-      /**
-       * Send stream to all clients
-       */
-      wsClients.map(function(client, index){
-        client.sendBytes(data);
-      });
-
-
-    });
-});
-
-tcpServer.listen(options.tcpPort, 'localhost');
 
 /** Websocet */
 var wsServer = new WebSocketServer({
@@ -78,44 +47,6 @@ var wsServer = new WebSocketServer({
 });
 
 
-
-function toArrayBuffer(buf) {
-  var ab = new ArrayBuffer(buf.length);
-  var view = new Uint8Array(ab);
-  for (var i = 0; i < buf.length; ++i) {
-    view[i] = buf[i];
-  }
-  return ab;
-}
-
-// async function concatFiles(latestBuffer){
-//   await saveFile('./latestFile')
-//   await
-// }
-
-function createLastTwentySeconds(){
-
-}
-
-
-function saveBlob(binaryData){
-  fs.writeFile(`${index}.webm`, binaryData, function(err) {
-
-    index++
-
-    if(err) {
-      return console.log(err);
-    }
-
-    console.log("The file was saved!");
-  });
-}
-
-var lastTwentySeconds;
-
-var totalBuffer;
-var index = 0;
-
 wsServer.on('request', function(request) {
   var connection = request.accept('echo-protocol', request.origin);
   console.log((new Date()) + ' Connection accepted.');
@@ -123,68 +54,11 @@ wsServer.on('request', function(request) {
   // add client to ws users collection
   wsClients.push(connection);
 
-  fs.readFile('./test4.webm', function (err,data) {
-    if (err) {
-      return console.log(err);
-    }
 
-    console.log('file read')
-
-    wsClients.map(async function(client, index){
-
-      client.sendBytes(data);
-
-      await Promise.delay(1000 * 10);
-
-      fs.readFile('./6.webm', async function (err,data) {
-        if (err) {
-          return console.log(err);
-        }
-
-
-        console.log('file read');
-
-        await Promise.delay(1000 * 10);
-
-        console.log('sending');
-
-        client.sendBytes(data);
-
-          fs.readFile('./7.webm', async function (err,data) {
-            if (err) {
-              return console.log(err);
-            }
-
-            console.log('file read')
-
-            await Promise.delay(1000 * 10);
-
-            console.log('sending');
-
-            client.sendBytes(data);
-
-            fs.readFile('./8.webm', async function (err,data) {
-              if (err) {
-                return console.log(err);
-              }
-
-              console.log('file read')
-
-              client.sendBytes(data);
-
-            });
-
-          });
-
-      });
-
-    });
-
-  });
 
 
   // send user beginning of stream if there's already a last twenty seconds
-  if(lastTwentySeconds){
+  if(false){
 
     console.log('sending first blob');
 
@@ -197,34 +71,11 @@ wsServer.on('request', function(request) {
   }
 
   /** RECEIVE DATA FROM BROWSER **/
-  connection.on('message', function(message) {
+  connection.on('message', async function(message) {
 
-    if(!totalBuffer){
-      totalBuffer = message.binaryData;
-    } else {
-      totalBuffer = Buffer.concat([totalBuffer, message.binaryData]);
-    }
+    console.log('writing file');
 
-    index++;
-
-    console.log('index ' + index)
-
-    if(index == 5){
-
-      console.log('sending total buffer');
-      // receive data from broadcaster and push to viewer (possible bug here, dont push to livestreamer)
-      wsClients.map(function(client, index){
-
-        client.sendBytes(totalBuffer);
-      });
-    }
-
-    // // receive data from broadcaster and push to viewer (possible bug here, dont push to livestreamer)
-    // wsClients.map(function(client, index){
-    //
-    //   client.sendBytes(message.binaryData);
-    // });
-
+    await fs.writeFile('./test.webm', message.binaryData);
 
   });
 
