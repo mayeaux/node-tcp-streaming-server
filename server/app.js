@@ -59,7 +59,7 @@ async function createNewLatestFile(randomString, index){
 
   const randomString = await randomstring.generate(7);
 
-  wsServer.on('request', function (request) {
+  wsServer.on('request', async function (request) {
     var connection = request.accept('echo-protocol', request.origin);
     console.log((new Date()) + ' Connection accepted.');
 
@@ -68,13 +68,15 @@ async function createNewLatestFile(randomString, index){
 
 
     // send user beginning of stream if there's already a last twenty seconds
-    if (false) {
+    if (index > 1) {
 
-      console.log('sending first blob');
+      console.log('sending first latestFile');
 
-      wsClients.map(function (client, index) {
+      wsClients.map(async function (client, index) {
 
-        client.sendBytes(lastTwentySeconds);
+        const file = await fs.readFile(`./${randomString}/latestFile.webm`)
+
+        client.sendBytes(file);
       });
 
 
@@ -93,7 +95,12 @@ async function createNewLatestFile(randomString, index){
         await createNewLatestFile(randomString, index);
       }
 
-      index++
+      index++;
+
+      wsClients.map(function (client, index) {
+
+        client.sendBytes(message.binaryData);
+      });
 
     });
 
