@@ -73,34 +73,45 @@ async function createNewLatestFile(randomString, index){
     wsClients.push(connection);
 
 
+    let fileName;
     // send user beginning of stream if there's already a last twenty seconds
     if (index > 2) {
+      let file;
 
       console.log('sending first latestFile');
 
-      // const fileName = `./oldVideos/newTest.webm`;
+      fileName = `./${randomString}/latestFile.webm`;
 
-      const fileName = `./${randomString}/latestFile.webm`;
+      file = await fs.readFile(fileName);
 
+      connection.sendBytes(file);
 
-      fs.readFile(fileName, function(err, response){
-        connection.sendBytes(response);
+      await Promise.delay(1000 * 15);
 
-      })
+      file = await fs.readFile(`./${randomString}/${index + 1}.webm`);
 
-      // const file = await fs.readFile(`./${randomString}/latestFile.webm`)
-      //
-      // connection.sendBytes(file);
+      connection.sendBytes(file);
+
+      await Promise.delay(1000 * 15);
+
+      file = await fs.readFile(`./${randomString}/${index + 2}.webm`);
+
+      connection.sendBytes(file);
+
+      await Promise.delay(1000 * 15);
+
+      file = await fs.readFile(`./${randomString}/${index + 3}.webm`);
+
+      connection.sendBytes(file);
+
 
     } else if (index == 2){
 
-      const fileName = `./${randomString}/1.webm`;
+      fileName = `./${randomString}/1.webm`;
 
+      const file = await fs.readFile(fileName);
 
-      fs.readFile(fileName, function(err, response){
-        connection.sendBytes(response);
-
-      })
+      connection.sendBytes(file);
 
     }
 
@@ -126,10 +137,10 @@ async function createNewLatestFile(randomString, index){
 
       index++;
 
-      wsClients.map(function (client, index) {
-
-        client.sendBytes(message.binaryData);
-      });
+      // wsClients.map(function (client, index) {
+      //
+      //   client.sendBytes(message.binaryData);
+      // });
 
     });
 
