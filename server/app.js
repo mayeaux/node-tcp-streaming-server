@@ -9,6 +9,8 @@ var probe = require('node-ffprobe');
 const exec = require('child_process').exec;
 const concat = require('concat');
 
+const Promise = require('bluebird');
+
 function isAbv(value) {
   return value && value.buffer instanceof ArrayBuffer && value.byteLength !== undefined;
 }
@@ -121,16 +123,61 @@ wsServer.on('request', function(request) {
   // add client to ws users collection
   wsClients.push(connection);
 
-  fs.readFile('./output10.webm', function (err,data) {
+  fs.readFile('./test4.webm', function (err,data) {
     if (err) {
       return console.log(err);
     }
 
     console.log('file read')
 
-    wsClients.map(function(client, index){
+    wsClients.map(async function(client, index){
 
       client.sendBytes(data);
+
+      await Promise.delay(1000 * 10);
+
+      fs.readFile('./6.webm', async function (err,data) {
+        if (err) {
+          return console.log(err);
+        }
+
+
+        console.log('file read');
+
+        await Promise.delay(1000 * 10);
+
+        console.log('sending');
+
+        client.sendBytes(data);
+
+          fs.readFile('./7.webm', async function (err,data) {
+            if (err) {
+              return console.log(err);
+            }
+
+            console.log('file read')
+
+            await Promise.delay(1000 * 10);
+
+            console.log('sending');
+
+            client.sendBytes(data);
+
+            fs.readFile('./8.webm', async function (err,data) {
+              if (err) {
+                return console.log(err);
+              }
+
+              console.log('file read')
+
+              client.sendBytes(data);
+
+            });
+
+          });
+
+      });
+
     });
 
   });
